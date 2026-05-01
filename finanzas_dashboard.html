@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finanzas — Dashboard</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0b0c0e;
+    --surface: #13151a;
+    --surface2: #1c1f27;
+    --border: #252830;
+    --border2: #2e3340;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --muted2: #9ca3af;
+    --gold: #f0a830;
+    --gold-dim: rgba(240,168,48,0.12);
+    --green: #34d399;
+    --green-dim: rgba(52,211,153,0.1);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.1);
+    --blue: #60a5fa;
+    --sidebar-w: 220px;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SIDEBAR ─────────────────────────────── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    padding: 1.5rem 1.25rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-mark {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .sidebar-nav {
+    padding: 1rem 0.75rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nav-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    padding: 0.5rem 0.5rem 0.25rem;
+    margin-top: 0.5rem;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--muted2);
+    font-weight: 400;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+
+  .nav-item.active {
+    background: var(--gold-dim);
+    color: var(--gold);
+    border-color: rgba(240,168,48,0.2);
+    font-weight: 500;
+  }
+
+  .nav-icon { font-size: 14px; flex-shrink: 0; }
+
+  .sidebar-footer {
+    padding: 1rem 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .auth-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  .auth-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .auth-dot.connected { background: var(--green); }
+
+  .auth-info { flex: 1; min-width: 0; }
+
+  .auth-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .auth-action {
+    font-size: 10px;
+    color: var(--muted);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* ── MAIN ─────────────────────────────────── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .topbar-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .refresh-btn {
+    padding: 7px 14px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.78rem;
+    color: var(--muted2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+
+  .refresh-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  .last-sync {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .content { padding: 2rem; flex: 1; }
+
+  /* ── SETUP PANEL ─────────────────────────── */
+  .setup-panel {
+    max-width: 620px;
+    margin: 0 auto;
+  }
+
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .setup-card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  .setup-card p {
+    font-size: 0.88rem;
+    color: var(--muted2);
+    line-height: 1.65;
+    margin-bottom: 1.25rem;
+  }
+
+  .setup-steps {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .setup-steps ol {
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .setup-steps li {
+    font-size: 0.82rem;
+    color: var(--muted2);
+    line-height: 1.5;
+  }
+
+  .setup-steps li a { color: var(--gold); text-decoration: underline; }
+  .setup-steps li code { font-family: 'DM Mono', monospace; color: var(--green); font-size: 0.8em; }
+
+  .field-group { margin-bottom: 1rem; }
+
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .field-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field-input:focus { border-color: var(--gold); }
+  .field-input::placeholder { color: var(--muted); }
+
+  .btn-primary {
+    padding: 11px 22px;
+    background: var(--gold);
+    color: #0b0c0e;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-secondary {
+    padding: 10px 20px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+
+  /* ── DASHBOARD ────────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.income::before { background: var(--green); }
+  .stat-card.expense::before { background: var(--red); }
+  .stat-card.balance::before { background: var(--gold); }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-card.income .stat-value { color: var(--green); }
+  .stat-card.expense .stat-value { color: var(--red); }
+  .stat-card.balance .stat-value { color: var(--gold); }
+
+  .stat-sub {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .chart-card h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .chart-wrap { position: relative; height: 200px; }
+
+  /* ── FORMS ────────────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-card h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .form-grid-full { grid-template-columns: 1fr 1fr; }
+
+  .field-input-dark {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field-input-dark:focus { border-color: var(--gold); }
+  .field-input-dark::placeholder { color: var(--muted); }
+
+  select.field-input-dark {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+    cursor: pointer;
+  }
+
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── TABLE ────────────────────────────────── */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .table-header h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .record-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 3px 8px;
+    border-radius: 100px;
+    border: 1px solid var(--border2);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+
+  tbody td {
+    padding: 11px 16px;
+    font-size: 0.85rem;
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  .amount-cell {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 0.88rem;
+  }
+
+  .amount-income { color: var(--green); }
+  .amount-expense { color: var(--red); }
+
+  .badge-tipo {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--muted2);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  .empty-state .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+  /* ── TOAST ────────────────────────────────── */
+  .toast-container {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    animation: slideIn 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 320px;
+  }
+
+  .toast.success { border-color: rgba(52,211,153,0.3); }
+  .toast.error { border-color: rgba(248,113,113,0.3); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── SPINNER ──────────────────────────────── */
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #0b0c0e;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-row { padding: 2rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
+
+  /* ── PANEL VISIBILITY ─────────────────────── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── RESPONSIVE ───────────────────────────── */
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: 1fr; }
+    .charts-row { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">₡ Finanzas</div>
+    <div class="logo-sub">Control de flujo</div>
+  </div>
+  <nav class="sidebar-nav">
+    <span class="nav-label">Vistas</span>
+    <div class="nav-item active" onclick="showPanel('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">◈</span> Balance General
+    </div>
+    <div class="nav-item" onclick="showPanel('ingresos')" id="nav-ingresos">
+      <span class="nav-icon">↑</span> Ingresos
+    </div>
+    <div class="nav-item" onclick="showPanel('egresos')" id="nav-egresos">
+      <span class="nav-icon">↓</span> Egresos
+    </div>
+    <span class="nav-label">Configuración</span>
+    <div class="nav-item" onclick="showPanel('setup')" id="nav-setup">
+      <span class="nav-icon">⚙</span> Configurar API
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="auth-status">
+      <div class="auth-dot" id="authDot"></div>
+      <div class="auth-info">
+        <div class="auth-name" id="authName">Sin conectar</div>
+        <div class="auth-action" id="authAction" onclick="toggleAuth()">Conectar con Google</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbarTitle">Balance General</div>
+    <div class="topbar-right">
+      <span class="last-sync" id="lastSync">—</span>
+      <button class="refresh-btn" onclick="loadAllData()">⟳ Actualizar</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- SETUP PANEL -->
+    <div class="panel active" id="panel-setup">
+      <div class="setup-panel">
+        <div class="setup-card">
+          <h2>Configuración inicial</h2>
+          <p>Para conectar la app con tu Google Sheet necesitas un <strong>Client ID de OAuth 2.0</strong>. Sigue los pasos a continuación. Solo necesitas hacerlo una vez.</p>
+
+          <div class="setup-steps">
+            <ol>
+              <li>Ve a <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a> y crea un nuevo proyecto.</li>
+              <li>En el menú: <strong>APIs y Servicios → Biblioteca</strong> → busca <strong>Google Sheets API</strong> → Habilitar.</li>
+              <li>Ve a <strong>APIs y Servicios → Credenciales → Crear credenciales → ID de cliente OAuth 2.0</strong>.</li>
+              <li>Tipo de aplicación: <strong>Aplicación web</strong>.</li>
+              <li>En <em>Orígenes de JavaScript autorizados</em>, agrega: <code>http://localhost</code> y el dominio donde alojes este archivo.</li>
+              <li>Copia el <strong>ID de cliente</strong> generado y pégalo abajo.</li>
+            </ol>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">ID de Cliente OAuth 2.0</label>
+            <input type="text" class="field-input" id="clientIdInput" placeholder="xxxxxx.apps.googleusercontent.com" />
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">ID del Google Sheet</label>
+            <input type="text" class="field-input" id="sheetIdInput" placeholder="1m6l7qV57fLFKIPzzJDRlueCzPCNDqu4q3tQn8M7i37A" value="1m6l7qV57fLFKIPzzJDRlueCzPCNDqu4q3tQn8M7i37A" />
+          </div>
+
+          <button class="btn-primary" onclick="saveConfig()">Guardar y conectar →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD PANEL -->
+    <div class="panel" id="panel-dashboard">
+      <div class="stats-row">
+        <div class="stat-card income">
+          <div class="stat-label">Total Ingresos</div>
+          <div class="stat-value" id="statIngresos">$0.00</div>
+          <div class="stat-sub" id="statIngresosCount">0 registros</div>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-label">Total Egresos</div>
+          <div class="stat-value" id="statEgresos">$0.00</div>
+          <div class="stat-sub" id="statEgresosCount">0 registros</div>
+        </div>
+        <div class="stat-card balance">
+          <div class="stat-label">Balance Neto</div>
+          <div class="stat-value" id="statBalance">$0.00</div>
+          <div class="stat-sub" id="statBalanceSub">—</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>Ingresos vs Egresos por Mes</h3>
+          <div class="chart-wrap">
+            <canvas id="chartMes"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Distribución por Tipo</h3>
+          <div class="chart-wrap">
+            <canvas id="chartTipo"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent activity -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Movimientos recientes</h3>
+          <span class="record-count" id="recentCount">—</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Detalle</th>
+              <th>Mes</th>
+              <th>Monto</th>
+            </tr>
+          </thead>
+          <tbody id="recentBody">
+            <tr><td colspan="5" class="loading-row">Cargando datos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- INGRESOS PANEL -->
+    <div class="panel" id="panel-ingresos">
+      <div class="section-header">
+        <div class="section-title">Ingresos</div>
+      </div>
+
+      <div class="form-card">
+        <h3>Registrar nuevo ingreso</h3>
+        <div class="form-grid">
+          <div>
+            <label class="field-label">Monto</label>
+            <input type="number" step="0.01" class="field-input-dark" id="i_monto" placeholder="0.00" />
+          </div>
+          <div>
+            <label class="field-label">Tipo de Ingreso</label>
+            <input list="tipos-ingreso" class="field-input-dark" id="i_tipo" placeholder="Salario, Ventas..." />
+            <datalist id="tipos-ingreso">
+              <option value="Salario">
+              <option value="Ventas">
+              <option value="Servicios">
+              <option value="Inversiones">
+              <option value="Renta">
+              <option value="Freelance">
+              <option value="Otros">
+            </datalist>
+          </div>
+          <div>
+            <label class="field-label">Mes</label>
+            <select class="field-input-dark" id="i_mes">
+              <option value="">Seleccionar...</option>
+              <option>Enero</option><option>Febrero</option><option>Marzo</option>
+              <option>Abril</option><option>Mayo</option><option>Junio</option>
+              <option>Julio</option><option>Agosto</option><option>Septiembre</option>
+              <option>Octubre</option><option>Noviembre</option><option>Diciembre</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Fecha</label>
+            <input type="date" class="field-input-dark" id="i_fecha" />
+          </div>
+          <div style="grid-column: span 2">
+            <label class="field-label">Detalles</label>
+            <input type="text" class="field-input-dark" id="i_detalles" placeholder="Descripción del ingreso..." />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" onclick="clearForm('i')">Limpiar</button>
+          <button class="btn-primary" id="btnAddIngreso" onclick="addRow('INGRESOS')">
+            ↑ Registrar Ingreso
+          </button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Historial de ingresos</h3>
+          <span class="record-count" id="ingresosCount">—</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo de Ingreso</th>
+              <th>Mes</th>
+              <th>Detalles</th>
+              <th>Monto</th>
+            </tr>
+          </thead>
+          <tbody id="ingresosBody">
+            <tr><td colspan="5" class="loading-row">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EGRESOS PANEL -->
+    <div class="panel" id="panel-egresos">
+      <div class="section-header">
+        <div class="section-title">Egresos</div>
+      </div>
+
+      <div class="form-card">
+        <h3>Registrar nuevo egreso</h3>
+        <div class="form-grid">
+          <div>
+            <label class="field-label">Monto</label>
+            <input type="number" step="0.01" class="field-input-dark" id="e_monto" placeholder="0.00" />
+          </div>
+          <div>
+            <label class="field-label">Tipo de Egreso</label>
+            <input list="tipos-egreso" class="field-input-dark" id="e_tipo" placeholder="Arriendo, Servicios..." />
+            <datalist id="tipos-egreso">
+              <option value="Arriendo">
+              <option value="Servicios básicos">
+              <option value="Alimentación">
+              <option value="Transporte">
+              <option value="Salud">
+              <option value="Educación">
+              <option value="Entretenimiento">
+              <option value="Proveedores">
+              <option value="Nómina">
+              <option value="Impuestos">
+              <option value="Otros">
+            </datalist>
+          </div>
+          <div>
+            <label class="field-label">Mes</label>
+            <select class="field-input-dark" id="e_mes">
+              <option value="">Seleccionar...</option>
+              <option>Enero</option><option>Febrero</option><option>Marzo</option>
+              <option>Abril</option><option>Mayo</option><option>Junio</option>
+              <option>Julio</option><option>Agosto</option><option>Septiembre</option>
+              <option>Octubre</option><option>Noviembre</option><option>Diciembre</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Fecha</label>
+            <input type="date" class="field-input-dark" id="e_fecha" />
+          </div>
+          <div style="grid-column: span 2">
+            <label class="field-label">Detalles</label>
+            <input type="text" class="field-input-dark" id="e_detalles" placeholder="Descripción del egreso..." />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" onclick="clearForm('e')">Limpiar</button>
+          <button class="btn-primary" id="btnAddEgreso" onclick="addRow('EGRESOS')">
+            ↓ Registrar Egreso
+          </button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Historial de egresos</h3>
+          <span class="record-count" id="egresosCount">—</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo de Egreso</th>
+              <th>Mes</th>
+              <th>Detalles</th>
+              <th>Monto</th>
+            </tr>
+          </thead>
+          <tbody id="egresosBody">
+            <tr><td colspan="5" class="loading-row">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+let accessToken = null;
+let tokenClient = null;
+let chartMes = null;
+let chartTipo = null;
+let ingresosData = [];
+let egresosData = [];
+let autoRefreshTimer = null;
+
+const SHEET_ID_DEFAULT = '1m6l7qV57fLFKIPzzJDRlueCzPCNDqu4q3tQn8M7i37A';
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function cfg(k) { return localStorage.getItem('fin_' + k) || ''; }
+function setCfg(k, v) { localStorage.setItem('fin_' + k, v); }
+
+// ── INIT ───────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  // Pre-fill saved config
+  const savedClient = cfg('client_id');
+  const savedSheet  = cfg('sheet_id') || SHEET_ID_DEFAULT;
+  if (savedClient) document.getElementById('clientIdInput').value = savedClient;
+  document.getElementById('sheetIdInput').value = savedSheet;
+
+  // Set today's date in forms
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('i_fecha').value = today;
+  document.getElementById('e_fecha').value = today;
+
+  if (savedClient) {
+    initGIS(savedClient);
+    // If we have a saved token, try to use it
+    if (cfg('access_token')) {
+      accessToken = cfg('access_token');
+      updateAuthUI(true);
+      showPanel('dashboard');
+      loadAllData();
+    } else {
+      showPanel('setup');
+    }
+  } else {
+    showPanel('setup');
+  }
+});
+
+// ── GOOGLE IDENTITY SERVICES ───────────────────────────────
+function initGIS(clientId) {
+  if (!window.google) {
+    setTimeout(() => initGIS(clientId), 500);
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    callback: (resp) => {
+      if (resp.error) { showToast('Error de autenticación: ' + resp.error, 'error'); return; }
+      accessToken = resp.access_token;
+      setCfg('access_token', accessToken);
+      updateAuthUI(true);
+      showPanel('dashboard');
+      loadAllData();
+    }
+  });
+}
+
+function toggleAuth() {
+  if (accessToken) {
+    // Sign out
+    accessToken = null;
+    setCfg('access_token', '');
+    updateAuthUI(false);
+    showToast('Sesión cerrada', 'success');
+  } else {
+    if (!tokenClient) {
+      showToast('Primero guarda tu Client ID en Configuración', 'error');
+      showPanel('setup');
+      return;
+    }
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  }
+}
+
+function updateAuthUI(connected) {
+  document.getElementById('authDot').className = 'auth-dot' + (connected ? ' connected' : '');
+  document.getElementById('authName').textContent = connected ? 'Google conectado' : 'Sin conectar';
+  document.getElementById('authAction').textContent = connected ? 'Cerrar sesión' : 'Conectar con Google';
+}
+
+// ── CONFIG ─────────────────────────────────────────────────
+function saveConfig() {
+  const clientId = document.getElementById('clientIdInput').value.trim();
+  const sheetId  = document.getElementById('sheetIdInput').value.trim();
+  if (!clientId) { showToast('Ingresa tu Client ID', 'error'); return; }
+  if (!sheetId)  { showToast('Ingresa el ID del Sheet', 'error'); return; }
+  setCfg('client_id', clientId);
+  setCfg('sheet_id', sheetId);
+  initGIS(clientId);
+  showToast('Configuración guardada. Conectando...', 'success');
+  setTimeout(() => toggleAuth(), 500);
+}
+
+// ── PANEL NAV ──────────────────────────────────────────────
+const titles = { dashboard:'Balance General', ingresos:'Ingresos', egresos:'Egresos', setup:'Configuración' };
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  document.getElementById('topbarTitle').textContent = titles[name] || name;
+}
+
+// ── API HELPERS ────────────────────────────────────────────
+function sheetId() { return cfg('sheet_id') || SHEET_ID_DEFAULT; }
+
+async function sheetsGet(range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId()}/values/${encodeURIComponent(range)}`;
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 401) { accessToken = null; setCfg('access_token', ''); updateAuthUI(false); }
+    throw new Error(err.error?.message || 'Error ' + res.status);
+  }
+  return res.json();
+}
+
+async function sheetsAppend(range, values) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId()}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'Error ' + res.status);
+  }
+  return res.json();
+}
+
+// ── LOAD DATA ──────────────────────────────────────────────
+async function loadAllData() {
+  if (!accessToken) { showToast('Conecta tu cuenta Google primero', 'error'); showPanel('setup'); return; }
+  try {
+    const [iRes, eRes] = await Promise.all([
+      sheetsGet('INGRESOS!A2:E'),
+      sheetsGet('EGRESOS!A2:E')
+    ]);
+    ingresosData = iRes.values || [];
+    egresosData  = eRes.values || [];
+    renderAll();
+    const now = new Date();
+    document.getElementById('lastSync').textContent = 'Sync ' + now.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  } catch(e) {
+    showToast('Error cargando datos: ' + e.message, 'error');
+  }
+}
+
+// ── RENDER ─────────────────────────────────────────────────
+function fmt(n) {
+  return new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
+}
+
+function parseAmount(v) { return parseFloat(String(v).replace(/[^0-9.\-]/g, '')) || 0; }
+
+function renderAll() {
+  renderDashboard();
+  renderTable('ingresosBody', ingresosData, 'income');
+  renderTable('egresosBody',  egresosData,  'expense');
+  document.getElementById('ingresosCount').textContent = ingresosData.length + ' registros';
+  document.getElementById('egresosCount').textContent  = egresosData.length + ' registros';
+}
+
+function renderDashboard() {
+  const totalI = ingresosData.reduce((s, r) => s + parseAmount(r[0]), 0);
+  const totalE = egresosData.reduce((s, r)  => s + parseAmount(r[0]), 0);
+  const balance = totalI - totalE;
+
+  document.getElementById('statIngresos').textContent     = fmt(totalI);
+  document.getElementById('statEgresos').textContent      = fmt(totalE);
+  document.getElementById('statBalance').textContent      = fmt(balance);
+  document.getElementById('statIngresosCount').textContent = ingresosData.length + ' registros';
+  document.getElementById('statEgresosCount').textContent  = egresosData.length + ' registros';
+  document.getElementById('statBalanceSub').textContent   = balance >= 0 ? '✓ Superávit' : '⚠ Déficit';
+
+  document.getElementById('recentCount').textContent = (ingresosData.length + egresosData.length) + ' movimientos';
+
+  renderRecentTable();
+  renderChartMes(totalI, totalE);
+  renderChartTipo();
+}
+
+function renderRecentTable() {
+  const combined = [
+    ...ingresosData.map(r => ({ fecha: r[3]||'', tipo: r[1]||'', detalle: r[4]||'', mes: r[2]||'', monto: parseAmount(r[0]), kind: 'income' })),
+    ...egresosData.map(r  => ({ fecha: r[3]||'', tipo: r[1]||'', detalle: r[4]||'', mes: r[2]||'', monto: parseAmount(r[0]), kind: 'expense' }))
+  ].sort((a,b) => (b.fecha > a.fecha ? 1 : -1)).slice(0, 15);
+
+  const tbody = document.getElementById('recentBody');
+  if (!combined.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">○</div>Sin movimientos aún</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = combined.map(r => `
+    <tr>
+      <td>${r.fecha || '—'}</td>
+      <td><span class="badge-tipo">${r.tipo || '—'}</span></td>
+      <td>${r.detalle || '—'}</td>
+      <td>${r.mes || '—'}</td>
+      <td class="amount-cell ${r.kind === 'income' ? 'amount-income' : 'amount-expense'}">
+        ${r.kind === 'income' ? '+' : '-'}${fmt(r.monto)}
+      </td>
+    </tr>`).join('');
+}
+
+function renderTable(tbodyId, data, kind) {
+  const tbody = document.getElementById(tbodyId);
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">○</div>Sin registros aún</div></td></tr>';
+    return;
+  }
+  // columns: MONTO[0], TIPO[1], MES[2], FECHA[3], DETALLES[4]
+  tbody.innerHTML = [...data].reverse().map(r => `
+    <tr>
+      <td>${r[3] || '—'}</td>
+      <td><span class="badge-tipo">${r[1] || '—'}</span></td>
+      <td>${r[2] || '—'}</td>
+      <td>${r[4] || '—'}</td>
+      <td class="amount-cell ${kind === 'income' ? 'amount-income' : 'amount-expense'}">${fmt(parseAmount(r[0]))}</td>
+    </tr>`).join('');
+}
+
+function renderChartMes(totalI, totalE) {
+  // Group by month
+  const iByMes = {}, eByMes = {};
+  MONTHS.forEach(m => { iByMes[m] = 0; eByMes[m] = 0; });
+  ingresosData.forEach(r => { const m = r[2]; if (iByMes[m] !== undefined) iByMes[m] += parseAmount(r[0]); });
+  egresosData.forEach(r  => { const m = r[2]; if (eByMes[m] !== undefined) eByMes[m] += parseAmount(r[0]); });
+
+  // Only show months with data
+  const active = MONTHS.filter(m => iByMes[m] || eByMes[m]);
+  const labels = active.length ? active : MONTHS.slice(0,6);
+
+  const ctx = document.getElementById('chartMes').getContext('2d');
+  if (chartMes) chartMes.destroy();
+  chartMes = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Ingresos', data: labels.map(m => iByMes[m]||0), backgroundColor: 'rgba(52,211,153,0.7)', borderRadius: 4 },
+        { label: 'Egresos',  data: labels.map(m => eByMes[m]||0), backgroundColor: 'rgba(248,113,113,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#9ca3af', font: { family: 'Outfit', size: 11 }, boxWidth: 12 } } },
+      scales: {
+        x: { grid: { color: '#252830' }, ticks: { color: '#6b7280', font: { family: 'Outfit', size: 10 } } },
+        y: { grid: { color: '#252830' }, ticks: { color: '#6b7280', font: { family: 'Outfit', size: 10 }, callback: v => '$'+v.toLocaleString() } }
+      }
+    }
+  });
+}
+
+function renderChartTipo() {
+  // Combine types from both
+  const tipos = {};
+  ingresosData.forEach(r => { const t = r[1]||'Otros'; tipos[t] = (tipos[t]||0) + parseAmount(r[0]); });
+  egresosData.forEach(r  => { const t = r[1]||'Otros'; tipos[t] = (tipos[t]||0) + parseAmount(r[0]); });
+
+  const labels = Object.keys(tipos);
+  const values = Object.values(tipos);
+  const colors = ['#f0a830','#34d399','#f87171','#60a5fa','#a78bfa','#fb923c','#4ade80','#f472b6','#38bdf8'];
+
+  const ctx = document.getElementById('chartTipo').getContext('2d');
+  if (chartTipo) chartTipo.destroy();
+  chartTipo = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length), borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: '#9ca3af', font: { family: 'Outfit', size: 10 }, boxWidth: 10, padding: 8 }
+        }
+      }
+    }
+  });
+}
+
+// ── ADD ROW ────────────────────────────────────────────────
+async function addRow(sheet) {
+  if (!accessToken) { showToast('Conecta tu cuenta Google primero', 'error'); return; }
+
+  const prefix = sheet === 'INGRESOS' ? 'i' : 'e';
+  const monto   = document.getElementById(prefix + '_monto').value.trim();
+  const tipo    = document.getElementById(prefix + '_tipo').value.trim();
+  const mes     = document.getElementById(prefix + '_mes').value;
+  const fecha   = document.getElementById(prefix + '_fecha').value;
+  const detalles= document.getElementById(prefix + '_detalles').value.trim();
+
+  if (!monto || !tipo || !mes || !fecha) {
+    showToast('Completa Monto, Tipo, Mes y Fecha', 'error'); return;
+  }
+
+  const btnId = sheet === 'INGRESOS' ? 'btnAddIngreso' : 'btnAddEgreso';
+  const btn = document.getElementById(btnId);
+  const origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Guardando...';
+
+  try {
+    // columns order: MONTO, TIPO, MES, FECHA, DETALLES
+    await sheetsAppend(sheet + '!A:E', [[parseFloat(monto), tipo, mes, fecha, detalles]]);
+    clearForm(prefix);
+    showToast(sheet === 'INGRESOS' ? '✓ Ingreso registrado' : '✓ Egreso registrado', 'success');
+    await loadAllData();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = origHTML;
+}
+
+function clearForm(prefix) {
+  ['monto','tipo','mes','detalles'].forEach(f => {
+    const el = document.getElementById(prefix + '_' + f);
+    if (el) el.value = '';
+  });
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById(prefix + '_fecha').value = today;
+}
+
+// ── TOAST ──────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const icon = type === 'success' ? '✓' : '⚠';
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── AUTO REFRESH every 60s ─────────────────────────────────
+setInterval(() => { if (accessToken) loadAllData(); }, 60000);
+</script>
+</body>
+</html>
